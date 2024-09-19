@@ -1,0 +1,134 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/wait.h>
+#include <signal.h>
+#include <time.h>
+
+#define MAX_LEN 100
+#define FCFS 0
+#define SJF 1
+
+typedef struct process {
+    char name[MAX_LEN];
+    int duration;
+    int pid;
+    struct process *next;
+} process;
+
+process *head = NULL;
+
+void add_process(char *name, int duration) {
+    process *new_process = (process *) malloc(sizeof(process));
+    strcpy(new_process->name, name);
+    new_process->duration = duration;
+    new_process->next = head;
+    head = new_process;
+}
+
+int compare_processes(const void *a, const void *b) {
+    process *p1 = *((process **) a);
+    process *p2 = *((process **) b);
+    if (p1->duration == p2->duration) {
+        return 0;
+    } else {
+        return p1->duration < p2->duration ? -1 : 1;
+    }
+}
+
+void sort_processes(int policy) {
+    int count = 0;
+    process *current = head;
+    while (current != NULL) {
+        count++;
+        current = current->next;
+    }
+    process *array[count];
+    current = head;
+    int i = 0;
+    while (current != NULL) {
+        array[i++] = current;
+        current = current->next;
+    }
+    if (policy == SJF) {
+        qsort(array, count, sizeof(process *), compare_processes);
+    }
+    head = NULL;
+    for (i = count - 1; i >= 0; i--) {
+        array[i]->next = head;
+        head = array[i];
+    }
+}
+
+void run_process(process *p) {
+    int pid = fork();
+    if (pid == 0) {
+        char *args[] = {p->name, NULL};
+        execvp(p->name, args);
+        exit(1);
+    } else {
+        p->pid = pid;
+    }
+}
+
+void wait_for_process(process *p) {
+    int status;
+    waitpid(p->pid, &status, 0);
+}
+
+void print_process(process *p) {
+    printf("Process %s with PID %d and duration %d finished\n", p->name, p->pid, p->duration);
+}
+
+int main(int argc, char *argv[]) {
+    if (argc < 3) {
+        printf("Usage: %s <policy> <input_file>\n", argv[0]);
+        return 1;
+    }
+    int policy = -1;
+    if (strcmp(argv[1], "FCFS") == 0) {
+        policy = FCFS;
+    } else if (strcmp(argv[1], "SJF") == 0) {
+        policy = SJF;
+    } else if (strcmp(argv[1], "RR") == 0) {
+        policy = RR;
+    } else if (strcmp(argv[1], "PRIO") == 0) {
+        policy = PRIO;
+    } else {
+        printf("Error: Invalid policy\n");
+        return 1;
+    }
+
+    char *file_name = argv[2];
+    FILE *file = fopen(file_name, "r");
+    if (!file) {
+        printf("Error: Failed to open file %s\n", file_name);
+        return 1;
+    }
+
+    int quantum = -1;
+    if (policy == RR) {
+        if (argc < 4) {
+            printf("Usage: %s RR <input_file> <quantum>\n", argv[0]);
+            return 1;
+        }
+        quantum = atoi(argv[3]);
+    }
+
+    // Initialize the process list and read the applications from the input file
+    struct process *process_list = NULL;
+    int num_processes = read_processes(file, &process_list);
+
+    // Sort the process list based on the selected policy
+    sort_processes(process_list, num_processes, policy);
+
+    // Start the router and run the applications
+    start_router(process_list, num_processes, policy, quantum);
+
+    // Clean up and exit
+    free_processes(process_list, num_processes);
+    fclose(file);
+    return 0;
+}
+

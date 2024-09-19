@@ -1,0 +1,59 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <string.h>
+
+#define MAX_LEN 100
+
+enum process_state { READY, RUNNING, STOPPED, EXITED };
+
+struct process {
+  int pid;
+  char exec_file[MAX_LEN];
+  int priority;
+  enum process_state state;
+};
+
+int main(int argc, char** argv) {
+  // Parse input arguments
+  // ...
+
+  // Read input file
+  // ...
+
+  // Insert processes into queue
+  // ...
+
+  // Call selected scheduling policy
+  // ...
+
+  // Spawn processes with fork-exec
+  struct process p;
+  p.pid = 1;
+  strcpy(p.exec_file, "./work/work1");
+  p.priority = 1;
+  p.state = READY;
+
+  pid_t child_pid = fork();
+  if (child_pid == 0) {
+    // Child process
+    char* exec_args[2];
+    exec_args[0] = p.exec_file;
+    exec_args[1] = NULL;
+    execve(exec_args[0], exec_args, NULL);
+  } else {
+    // Parent process
+    int child_status;
+    waitpid(child_pid, &child_status, 0);
+    // Update process state to EXITED
+    p.state = EXITED;
+  }
+
+  // Print information and statistics
+  // ...
+
+  printf("Scheduler exits\n");
+  return 0;
+}

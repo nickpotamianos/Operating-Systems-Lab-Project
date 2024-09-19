@@ -1,0 +1,88 @@
+#include <stdio.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <time.h>
+
+#define MAX_PROCESSES 10
+#define QUANTUM 1
+
+struct process {
+pid_t pid;
+int arrival_time;
+int processing_time;
+int remaining_time;
+};
+
+int process_count = 0;
+struct process processes[MAX_PROCESSES];
+
+// A flag to track if a process is currently running
+int running = 0;
+
+// A flag to track if all processes have completed
+int all_processes_complete = 0;
+
+// Function to calculate the remaining processing time for each process
+void calculate_remaining_time() {
+for (int i = 0; i < process_count; i++) {
+processes[i].remaining_time = processes[i].processing_time;
+}
+}
+
+// Function to check if all processes have completed
+void check_process_completion() {
+all_processes_complete = 1;
+for (int i = 0; i < process_count; i++) {
+if (processes[i].remaining_time > 0) {
+all_processes_complete = 0;
+break;
+}
+}
+}
+
+// Function to get the next process to run based on FCFS policy
+int get_next_process_fcfs() {
+for (int i = 0; i < process_count; i++) {
+if (processes[i].remaining_time > 0) {
+return i;
+}
+}
+return -1;
+}
+
+// Function to get the next process to run based on SJF policy
+int get_next_process_sjf() {
+int next_process = -1;
+int shortest_time = 100000;
+for (int i = 0; i < process_count; i++) {
+if (processes[i].remaining_time > 0 && processes[i].remaining_time < shortest_time) {
+next_process = i;
+shortest_time = processes[i].remaining_time;
+}
+}
+return next_process;
+}
+
+// Signal handler for SIGCHLD
+void sigchld_handler(int sig) {
+int status;
+pid_t pid = wait(&status);
+for (int i = 0; i < process_count; i++) {
+if (processes[i].pid == pid) {
+time_t end_time = time(NULL);
+int execution_time = end_time - processes[i].arrival_time;
+printf("Process %d completed in %d seconds\n", processes[i].pid, execution_time);
+}
+}
+running = 0;
+}
+
+int main(int argc, char *argv[]) {
+// Parse the input arguments
+if (argc < 2) {
+printf("Usage: %s <policy>\n", argv[0]);
+return 1;
+}
+}

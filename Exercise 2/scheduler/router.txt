@@ -1,0 +1,113 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+#include <string.h>
+
+// Structure to keep track of each application
+struct Application {
+  int pid;
+  int priority;
+};
+
+// Doubly linked list node to store the application descriptors
+struct Node {
+  struct Application app;
+  struct Node *next;
+  struct Node *prev;
+};
+
+// Head of the linked list
+struct Node *head = NULL;
+
+// Tail of the linked list
+struct Node *tail = NULL;
+
+// Routing policy
+char policy[4];
+
+// Function to add a new application to the linked list
+void addApp(struct Application app) {
+  struct Node *newNode = (struct Node *) malloc(sizeof(struct Node));
+  newNode->app = app;
+  newNode->next = NULL;
+  newNode->prev = NULL;
+
+  if (head == NULL) {
+    head = newNode;
+    tail = newNode;
+    return;
+  }
+
+  tail->next = newNode;
+  newNode->prev = tail;
+  tail = newNode;
+}
+
+// Function to remove the head node from the linked list
+void removeHead() {
+  if (head == NULL) {
+    return;
+  }
+
+  if (head == tail) {
+    free(head);
+    head = NULL;
+    tail = NULL;
+    return;
+  }
+
+  head = head->next;
+  free(head->prev);
+  head->prev = NULL;
+}
+
+// Function to compare the priorities of two applications
+int comparePriority(const void *a, const void *b) {
+  const struct Application *app1 = (const struct Application *) a;
+  const struct Application *app2 = (const struct Application *) b;
+  return app1->priority - app2->priority;
+}
+
+// Function to sort the linked list based on the routing policy
+void sortList() {
+  if (head == NULL) {
+    return;
+  }
+
+  int count = 0;
+  struct Node *temp = head;
+  while (temp) {
+    count++;
+    temp = temp->next;
+  }
+
+  struct Application apps[count];
+  temp = head;
+  int i = 0;
+  while (temp) {
+    apps[i++] = temp->app;
+    temp = temp->next;
+  }
+
+  if (strcmp(policy, "SJF") == 0) {
+    qsort(apps, count, sizeof(struct Application), comparePriority);
+  }
+
+  head = NULL;
+  tail = NULL;
+  for (i = 0; i < count; i++) {
+    addApp(apps[i]);
+  }
+}
+
+// SIGCHLD signal handler to update the router and perform necessary actions when an application terminates
+void sigchld_handler(int sig) {
+  int status;
+  pid_t pid = waitpid(-1, &status, WNOHANG);
+  if (pid == 0) {
+    return;
+  }
+}
+  // Additional code to remove the terminated application from the linked list
+  // ...

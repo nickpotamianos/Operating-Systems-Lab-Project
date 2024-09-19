@@ -1,0 +1,161 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <signal.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+
+#define MAX_APPS 100
+#define MAX_LEN 100
+#define RR_QUANTUM 5
+
+typedef struct {
+char name[MAX_LEN];
+int priority;
+int duration;
+} Application;
+
+Application apps[MAX_APPS];
+int num_apps;
+
+int policy;
+int quantum;
+
+int read_input(char *file_name) {
+FILE *fp = fopen(file_name, "r");
+if (!fp) {
+perror("fopen");
+return -1;
+}
+int i = 0;
+while (fscanf(fp, "%s%d%d", apps[i].name, &apps[i].priority, &apps[i].duration) == 3) {
+    i++;
+}
+
+fclose(fp);
+return i;
+}
+
+int cmp_fcfs(const void *a, const void *b) {
+return 0;
+}
+
+int cmp_sjf(const void *a, const void *b) {
+Application *app1 = (Application *)a;
+Application *app2 = (Application *)b;
+return app1->duration - app2->duration;
+}
+
+int cmp_prio(const void *a, const void *b) {
+Application *app1 = (Application *)a;
+Application *app2 = (Application *)b;
+int result = app1->priority - app2->priority;
+if (result == 0) {
+result = cmp_fcfs(a, b);
+}
+return result;
+}
+
+void sort_apps() {
+switch (policy) {
+case 0:
+qsort(apps, num_apps, sizeof(Application), cmp_fcfs);
+break;
+case 1:
+qsort(apps, num_apps, sizeof(Application), cmp_sjf);
+break;
+case 2:
+break;
+case 3:
+qsort(apps, num_apps, sizeof(Application), cmp_prio);
+break;
+}
+}
+
+void run_app(int app_idx) {
+int pid = fork();
+if (pid < 0) {
+perror("fork");
+exit(1);
+}
+if (pid == 0) {
+char duration[10];
+sprintf(duration, "%d", apps[app_idx].duration);
+execl(apps[app_idx].name, apps[app_idx].name, duration, NULL);
+}
+int status;
+waitpid(pid, &status, 0);
+}
+
+int main(int argc, char *argv[]) {
+if (argc < 3) {
+printf("Usage: %s <policy> <input_file>\n", argv[0]);
+return 1;
+}
+
+char *policy_str = argv[1];
+char *input_file = argv[2];
+
+int policy;
+if (strcmp(policy_str, "FCFS") == 0) {
+policy = FCFS;
+} else if (strcmp(policy_str, "SJF") == 0) {
+policy = SJF;
+} else if (strcmp(policy_str, "RR") == 0) {
+policy = RR;
+} else if (strcmp(policy_str, "PRIO") == 0) {
+policy = PRIO;
+} else {
+printf("Error: Unsupported policy %s\n", policy_str);
+return 1;
+}
+
+int quantum = 0;
+if (policy == RR) {
+if (argc < 4) {
+printf("Error: Quantum not specified\n");
+return 1;
+}
+quantum = atoi(argv[3]);
+if (quantum <= 0) {
+printf("Error: Quantum must be a positive integer\n");
+return 1;
+}
+}
+
+// read applications from input file
+int num_apps;
+app_t *apps = read_apps(input_file, &num_apps);
+if (!apps) {
+printf("Error: Failed to read applications\n");
+return 1;
+}
+
+// initialize execution queue
+exec_queue_t queue;
+init_exec_queue(&queue);
+
+// schedule and execute applications
+switch (policy) {
+case FCFS:
+schedule_fcfs(apps, num_apps, &queue);
+break;
+case SJF:
+schedule_sjf(apps, num_apps, &queue);
+break;
+case RR:
+schedule_rr(apps, num_apps, &queue, quantum);
+break;
+case PRIO:
+schedule_prio(apps, num_apps, &queue);
+break;
+default:
+break;
+}
+
+execute_apps(&queue);
+
+free(apps);
+return 0;
+}
