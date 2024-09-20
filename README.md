@@ -56,7 +56,7 @@ To replicate the exercises, follow these steps to set up the required environmen
 
 The performance of these algorithms was compared based on **waiting time**, **turnaround time**, and **response time**.
 
-📄 [Project 1 Report]([./Project-Report.pdf](https://github.com/nickpotamianos/Operating-Systems-Lab-Project/blob/main/Exercise%201/Project%20Report.pdf))
+📄 [Project 1 Report](https://github.com/nickpotamianos/Operating-Systems-Lab-Project/blob/main/Exercise%201/Project%20Report.pdf)
 
 ### Project 2 - Process Scheduling and Message Queues
 
