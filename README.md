@@ -77,7 +77,7 @@ The performance of these algorithms was compared based on **waiting time**, **tu
 - **Performance Metrics**:
   - The time taken for the entire computation was measured and compared for different numbers of processes, illustrating the effectiveness of parallel computation using process scheduling.
 
-📄 [Project 2 Report]([./Exercise 2/](https://github.com/nickpotamianos/Operating-Systems-Lab-Project/blob/main/Exercise%202/Project-Report.pdf))
+📄 [Project 2 Report](https://github.com/nickpotamianos/Operating-Systems-Lab-Project/blob/main/Exercise%202/Project-Report.pdf)
 
 ## Conclusions
 
